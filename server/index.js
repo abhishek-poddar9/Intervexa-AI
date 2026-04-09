@@ -11,7 +11,7 @@ import paymentRouter from "./routes/payment.route.js"
 
 const app = express()
 app.use(cors({
-    origin:"https://intervexa-ai-frontend-xv31.onrender.com",
+    origin:"https://intervexa-ai-u3ok.onrender.com",
     credentials:true
 }))
 
