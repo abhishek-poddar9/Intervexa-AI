@@ -1,19 +1,24 @@
-
 import { initializeApp } from "firebase/app";
-import {getAuth, GoogleAuthProvider} from "firebase/auth"
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_APIKEY,
-  authDomain: "reetunhireiq.firebaseapp.com",
-  projectId: "reetunhireiq",
-  storageBucket: "reetunhireiq.firebasestorage.app",
-  messagingSenderId: "1033902097563",
-  appId: "1:1033902097563:web:60985960b5df7be442f23e"
+  authDomain: "intervexa-ai-c67ed.firebaseapp.com",
+  projectId: "intervexa-ai-c67ed",
+  storageBucket: "intervexa-ai-c67ed.firebasestorage.app",
+  messagingSenderId: "529584026077",
+  appId: "1:529584026077:web:a3a478dae33b11de5e0634"
 };
 
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 
-const provider = new GoogleAuthProvider()
+const provider = new GoogleAuthProvider();
 
-export {auth , provider}
+
+provider.setCustomParameters({
+  prompt: "select_account",
+});
+
+export { auth, provider };
