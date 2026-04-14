@@ -1,6 +1,6 @@
-## ReeTunHireIQ
+## Intervexa AI
 
-ReeTunHireIQ is an AI-powered smart interview platform that helps users practice real-time interviews with adaptive AI, resume-based questioning, and performance evaluation.
+Intervexa AI is an AI-powered smart interview platform that helps users practice real-time interviews with adaptive AI, resume-based questioning, and performance evaluation.
 
 It simulates real interview environments using AI-generated questions, voice interaction, and analytics, making it ideal for job preparation.
 
