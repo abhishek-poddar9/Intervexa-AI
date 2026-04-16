@@ -35,7 +35,8 @@ It simulates real interview environments using AI-generated questions, voice int
 - React.js (Vite)  
 - Tailwind CSS  
 - Redux Toolkit  
-- Axios  
+- Axios
+- JavaScript (ES6+)  
 
 ### Backend
 - Node.js  
