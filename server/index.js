@@ -9,14 +9,29 @@ import userRouter from "./routes/user.route.js"
 import interviewRouter from "./routes/interview.route.js"
 import paymentRouter from "./routes/payment.route.js"
 
-const app = express()
-app.use(cors({
-    origin:"https://intervexa-ai-client-iexx.onrender.com",
-    credentials:true
-}))
+const app = express();
 
-app.use(express.json())
-app.use(cookieParser())
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://intervexa-ai-client-iexx.onrender.com",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS: " + origin));
+      }
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+app.use(cookieParser());
 
 app.use("/api/auth" , authRouter)
 app.use("/api/user", userRouter)
