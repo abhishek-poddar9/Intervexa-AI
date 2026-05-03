@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { motion } from "motion/react"
+import React, { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import {
   FaUserTie,
   FaBriefcase,
@@ -7,10 +7,10 @@ import {
   FaMicrophoneAlt,
   FaChartLine,
 } from "react-icons/fa";
-import axios from "axios"
-import { ServerUrl } from '../App';
-import { useDispatch, useSelector } from 'react-redux';
-import { setUserData } from '../redux/userSlice';
+import axios from "axios";
+import { ServerUrl } from "../App";
+import { useDispatch, useSelector } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 function Step1SetUp({ onStart, selectedMode }) {
   const { userData } = useSelector((state) => state.user);
@@ -41,6 +41,15 @@ function Step1SetUp({ onStart, selectedMode }) {
   const handleUploadResume = async () => {
     if (!resumeFile || analyzing) return;
 
+    const isPdf =
+      resumeFile.type === "application/pdf" ||
+      resumeFile.name.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      alert("Please upload only PDF file.");
+      return;
+    }
+
     setAnalyzing(true);
 
     const formdata = new FormData();
@@ -50,10 +59,12 @@ function Step1SetUp({ onStart, selectedMode }) {
       const result = await axios.post(
         ServerUrl + "/api/interview/resume",
         formdata,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
 
-      console.log(result.data);
+      console.log("Resume analysis response:", result.data);
 
       setCandidateName(result.data.name || "");
       setRole(result.data.role || "");
@@ -62,9 +73,12 @@ function Step1SetUp({ onStart, selectedMode }) {
       setSkills(result.data.skills || []);
       setResumeText(result.data.resumeText || "");
       setAnalysisDone(true);
-      setAnalyzing(false);
     } catch (error) {
-      console.log(error);
+      console.log("Resume upload error:", error);
+      console.log("Backend response:", error?.response?.data);
+
+      alert(error?.response?.data?.message || "Resume analysis failed.");
+    } finally {
       setAnalyzing(false);
     }
   };
@@ -116,9 +130,11 @@ function Step1SetUp({ onStart, selectedMode }) {
     if (mode === "HR") {
       return "Behavioral, communication, and HR-focused interview practice.";
     }
+
     if (mode === "Confidence") {
       return "Confidence-based practice with focus on speaking flow, clarity, and delivery.";
     }
+
     return "Role-specific technical interview practice based on your skills and projects.";
   };
 
@@ -127,30 +143,29 @@ function Step1SetUp({ onStart, selectedMode }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 px-4'
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 px-4"
     >
-      <div className='w-full max-w-6xl bg-white rounded-3xl shadow-2xl grid md:grid-cols-2 overflow-hidden'>
-
+      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl grid md:grid-cols-2 overflow-hidden">
         <motion.div
           initial={{ x: -80, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.7 }}
-          className='relative bg-gradient-to-br from-green-50 to-green-100 p-12 flex flex-col justify-center'
+          className="relative bg-gradient-to-br from-green-50 to-green-100 p-12 flex flex-col justify-center"
         >
           <h2 className="text-4xl font-bold text-gray-800 mb-6">
             Start Your AI Interview
           </h2>
 
           <p className="text-gray-600 mb-4">
-            Practice real interview scenarios powered by AI.
-            Improve communication, technical skills, and confidence.
+            Practice real interview scenarios powered by AI. Improve
+            communication, technical skills, and confidence.
           </p>
 
           <div className="mb-8 inline-flex w-fit rounded-full bg-white/70 px-4 py-2 text-sm font-medium text-green-700 border border-green-200 shadow-sm">
             Selected Mode: {mode}
           </div>
 
-          <div className='space-y-5'>
+          <div className="space-y-5">
             {[
               {
                 icon: <FaUserTie className="text-green-600 text-xl" />,
@@ -171,10 +186,10 @@ function Step1SetUp({ onStart, selectedMode }) {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 + index * 0.15 }}
                 whileHover={{ scale: 1.03 }}
-                className='flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm'
+                className="flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm"
               >
                 {item.icon}
-                <span className='text-gray-700 font-medium'>{item.text}</span>
+                <span className="text-gray-700 font-medium">{item.text}</span>
               </motion.div>
             ))}
           </div>
@@ -186,34 +201,32 @@ function Step1SetUp({ onStart, selectedMode }) {
           transition={{ duration: 0.7 }}
           className="p-12 bg-white"
         >
-          <h2 className='text-3xl font-bold text-gray-800 mb-2'>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">
             Interview Setup
           </h2>
 
-          <p className='text-gray-500 mb-8'>
-            {getModeDescription()}
-          </p>
+          <p className="text-gray-500 mb-8">{getModeDescription()}</p>
 
-          <div className='space-y-6'>
-            <div className='relative'>
-              <FaUserTie className='absolute top-4 left-4 text-gray-400' />
+          <div className="space-y-6">
+            <div className="relative">
+              <FaUserTie className="absolute top-4 left-4 text-gray-400" />
 
               <input
-                type='text'
-                placeholder='Enter role'
-                className='w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition'
+                type="text"
+                placeholder="Enter role"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition"
                 onChange={(e) => setRole(e.target.value)}
                 value={role}
               />
             </div>
 
-            <div className='relative'>
-              <FaBriefcase className='absolute top-4 left-4 text-gray-400' />
+            <div className="relative">
+              <FaBriefcase className="absolute top-4 left-4 text-gray-400" />
 
               <input
-                type='text'
-                placeholder='Experience (e.g. 2 years)'
-                className='w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition'
+                type="text"
+                placeholder="Experience (e.g. 2 years)"
+                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition"
                 onChange={(e) => setExperience(e.target.value)}
                 value={experience}
               />
@@ -222,7 +235,7 @@ function Step1SetUp({ onStart, selectedMode }) {
             <select
               value={mode}
               onChange={(e) => setMode(e.target.value)}
-              className='w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition'
+              className="w-full py-3 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition"
             >
               <option value="Technical">Technical Interview</option>
               <option value="HR">HR Interview</option>
@@ -233,20 +246,29 @@ function Step1SetUp({ onStart, selectedMode }) {
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 onClick={() => document.getElementById("resumeUpload").click()}
-                className='border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50 transition'
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50 transition"
               >
-                <FaFileUpload className='text-4xl mx-auto text-green-600 mb-3' />
+                <FaFileUpload className="text-4xl mx-auto text-green-600 mb-3" />
 
                 <input
                   type="file"
                   accept="application/pdf"
                   id="resumeUpload"
-                  className='hidden'
-                  onChange={(e) => setResumeFile(e.target.files[0])}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+
+                    if (!file) return;
+
+                    setResumeFile(file);
+                    setAnalysisDone(false);
+                  }}
                 />
 
-                <p className='text-gray-600 font-medium'>
-                  {resumeFile ? resumeFile.name : "Click to upload resume (Optional)"}
+                <p className="text-gray-600 font-medium">
+                  {resumeFile
+                    ? resumeFile.name
+                    : "Click to upload resume (Optional)"}
                 </p>
 
                 {resumeFile && (
@@ -256,7 +278,8 @@ function Step1SetUp({ onStart, selectedMode }) {
                       e.stopPropagation();
                       handleUploadResume();
                     }}
-                    className='mt-4 bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition'
+                    disabled={analyzing}
+                    className="mt-4 bg-gray-900 disabled:bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition"
                   >
                     {analyzing ? "Analyzing..." : "Analyze Resume"}
                   </motion.button>
@@ -268,28 +291,26 @@ function Step1SetUp({ onStart, selectedMode }) {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className='bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4'
+                className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4"
               >
-                <h3 className='text-lg font-semibold text-gray-800'>
+                <h3 className="text-lg font-semibold text-gray-800">
                   Resume Analysis Result
                 </h3>
 
                 {candidateName && (
                   <div>
-                    <p className='font-medium text-gray-700 mb-1'>
+                    <p className="font-medium text-gray-700 mb-1">
                       Candidate Name:
                     </p>
-                    <p className='text-gray-600'>{candidateName}</p>
+                    <p className="text-gray-600">{candidateName}</p>
                   </div>
                 )}
 
                 {projects.length > 0 && (
                   <div>
-                    <p className='font-medium text-gray-700 mb-1'>
-                      Projects:
-                    </p>
+                    <p className="font-medium text-gray-700 mb-1">Projects:</p>
 
-                    <ul className='list-disc list-inside text-gray-600 space-y-1'>
+                    <ul className="list-disc list-inside text-gray-600 space-y-1">
                       {projects.map((p, i) => (
                         <li key={i}>{p}</li>
                       ))}
@@ -299,15 +320,13 @@ function Step1SetUp({ onStart, selectedMode }) {
 
                 {skills.length > 0 && (
                   <div>
-                    <p className='font-medium text-gray-700 mb-1'>
-                      Skills:
-                    </p>
+                    <p className="font-medium text-gray-700 mb-1">Skills:</p>
 
-                    <div className='flex flex-wrap gap-2'>
+                    <div className="flex flex-wrap gap-2">
                       {skills.map((s, i) => (
                         <span
                           key={i}
-                          className='bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm'
+                          className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm"
                         >
                           {s}
                         </span>
@@ -323,7 +342,7 @@ function Step1SetUp({ onStart, selectedMode }) {
               disabled={!role || !experience || loading}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
-              className='w-full disabled:bg-gray-400 bg-green-600 hover:bg-green-700 text-white py-3 rounded-full text-lg font-semibold transition duration-300 shadow-md'
+              className="w-full disabled:bg-gray-400 bg-green-600 hover:bg-green-700 text-white py-3 rounded-full text-lg font-semibold transition duration-300 shadow-md"
             >
               {loading ? "Starting..." : `Start ${mode} Interview`}
             </motion.button>
@@ -331,7 +350,7 @@ function Step1SetUp({ onStart, selectedMode }) {
         </motion.div>
       </div>
     </motion.div>
-  )
+  );
 }
 
-export default Step1SetUp
+export default Step1SetUp;

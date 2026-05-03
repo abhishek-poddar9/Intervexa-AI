@@ -1,32 +1,47 @@
-import axios from "axios"
+import axios from "axios";
 
 export const askAi = async (messages) => {
-    try {
-        if(!messages || !Array.isArray(messages) || messages.length === 0) {
-            throw new Error("Messages array is empty.");
-        }
-        const response = await axios.post("https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-4o-mini",
-                messages: messages
+  try {
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is missing in environment variables.");
+    }
 
-            },
-            {
-            headers: {
-            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-        },});
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      throw new Error("Messages array is empty.");
+    }
 
-        const content = response?.data?.choices?.[0]?.message?.content;
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "openai/gpt-4o-mini",
+        messages,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://intervexa-ai-client-iexx.onrender.com",
+          "X-Title": "Intervexa AI",
+        },
+      }
+    );
 
-        if (!content || !content.trim()) {
+    const content = response?.data?.choices?.[0]?.message?.content;
+
+    if (!content || !content.trim()) {
       throw new Error("AI returned empty response.");
     }
 
-    return content
-    } catch (error) {
-            console.error("OpenRouter Error:", error.response?.data || error.message);
-    throw new Error("OpenRouter API Error");
+    return content;
+  } catch (error) {
+    console.error("OpenRouter Error:", error.response?.data || error.message);
 
-    }
-}
+    const openRouterMessage =
+      error.response?.data?.error?.message ||
+      error.response?.data?.message ||
+      error.message ||
+      "OpenRouter API Error";
+
+    throw new Error(openRouterMessage);
+  }
+};

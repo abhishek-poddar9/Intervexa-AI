@@ -4,18 +4,62 @@ import { askAi } from "../services/openRouter.service.js";
 import User from "../models/user.model.js";
 import Interview from "../models/interview.model.js";
 
-export const analyzeResume = async (req, res) => {
+const extractJsonFromAI = (aiResponse) => {
+  if (!aiResponse) {
+    throw new Error("AI returned empty response.");
+  }
+
+  const responseText =
+    typeof aiResponse === "string" ? aiResponse : JSON.stringify(aiResponse);
+
+  const cleanedResponse = responseText
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Resume required" });
+    return JSON.parse(cleanedResponse);
+  } catch (error) {
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      throw new Error("AI response was not valid JSON.");
     }
 
-    const filepath = req.file.path;
+    return JSON.parse(jsonMatch[0]);
+  }
+};
 
-    const fileBuffer = await fs.promises.readFile(filepath);
+export const analyzeResume = async (req, res) => {
+  let filepath;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Resume file is required.",
+      });
+    }
+
+    filepath = req.file.path;
+
+    let fileBuffer;
+
+    if (req.file.buffer) {
+      fileBuffer = req.file.buffer;
+    } else if (filepath) {
+      fileBuffer = await fs.promises.readFile(filepath);
+    } else {
+      return res.status(400).json({
+        message: "Unable to read uploaded resume file.",
+      });
+    }
+
     const uint8Array = new Uint8Array(fileBuffer);
 
-    const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+    const pdf = await pdfjsLib.getDocument({
+      data: uint8Array,
+      disableWorker: true,
+    }).promise;
 
     let resumeText = "";
 
@@ -29,14 +73,27 @@ export const analyzeResume = async (req, res) => {
 
     resumeText = resumeText.replace(/\s+/g, " ").trim();
 
+    if (!resumeText) {
+      return res.status(400).json({
+        message:
+          "Could not extract text from this PDF. Please upload a text-based resume PDF.",
+      });
+    }
+
+    const resumeTextForAI = resumeText.slice(0, 12000);
+
     const messages = [
       {
         role: "system",
         content: `
 Extract structured data from resume.
 
-Return strictly JSON:
+Return ONLY valid JSON.
+Do not write markdown.
+Do not use code block.
+Do not add explanation.
 
+Format:
 {
   "name": "string",
   "role": "string",
@@ -48,31 +105,31 @@ Return strictly JSON:
       },
       {
         role: "user",
-        content: resumeText,
+        content: resumeTextForAI,
       },
     ];
 
     const aiResponse = await askAi(messages);
-    const parsed = JSON.parse(aiResponse);
+    const parsed = extractJsonFromAI(aiResponse);
 
-    fs.unlinkSync(filepath);
-
-    return res.json({
+    return res.status(200).json({
       name: parsed.name || "",
       role: parsed.role || "",
       experience: parsed.experience || "",
-      projects: parsed.projects || [],
-      skills: parsed.skills || [],
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+      skills: Array.isArray(parsed.skills) ? parsed.skills : [],
       resumeText,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Analyze Resume Error:", error);
 
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    return res.status(500).json({
+      message: error.message || "Failed to analyze resume.",
+    });
+  } finally {
+    if (filepath && fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
     }
-
-    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -94,9 +151,9 @@ export const generateQuestion = async (req, res) => {
     candidateName = candidateName?.trim();
 
     if (!role || !experience || !mode) {
-      return res
-        .status(400)
-        .json({ message: "Role, Experience and Mode are required." });
+      return res.status(400).json({
+        message: "Role, Experience and Mode are required.",
+      });
     }
 
     const user = await User.findById(req.userId);
@@ -298,9 +355,9 @@ Special handling:
       questions: interview.questions,
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: `failed to create interview ${error}` });
+    return res.status(500).json({
+      message: `failed to create interview ${error}`,
+    });
   }
 };
 
@@ -311,13 +368,17 @@ export const submitAnswer = async (req, res) => {
     const interview = await Interview.findById(interviewId);
 
     if (!interview) {
-      return res.status(404).json({ message: "Interview not found." });
+      return res.status(404).json({
+        message: "Interview not found.",
+      });
     }
 
     const question = interview.questions[questionIndex];
 
     if (!question) {
-      return res.status(400).json({ message: "Invalid question index." });
+      return res.status(400).json({
+        message: "Invalid question index.",
+      });
     }
 
     if (!answer) {
@@ -421,32 +482,37 @@ Answer: ${answer}
     ];
 
     const aiResponse = await askAi(messages);
-    const parsed = JSON.parse(aiResponse);
+    const parsed = extractJsonFromAI(aiResponse);
 
     question.answer = answer;
-    question.confidence = parsed.confidence;
-    question.communication = parsed.communication;
-    question.correctness = parsed.correctness;
-    question.score = parsed.finalScore;
-    question.feedback = parsed.feedback;
+    question.confidence = Number(parsed.confidence) || 0;
+    question.communication = Number(parsed.communication) || 0;
+    question.correctness = Number(parsed.correctness) || 0;
+    question.score = Number(parsed.finalScore) || 0;
+    question.feedback = parsed.feedback || "Answer evaluated successfully.";
 
     await interview.save();
 
-    return res.status(200).json({ feedback: parsed.feedback });
+    return res.status(200).json({
+      feedback: question.feedback,
+    });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: `failed to submit answer ${error}` });
+    return res.status(500).json({
+      message: `failed to submit answer ${error}`,
+    });
   }
 };
 
 export const finishInterview = async (req, res) => {
   try {
     const { interviewId } = req.body;
+
     const interview = await Interview.findById(interviewId);
 
     if (!interview) {
-      return res.status(400).json({ message: "failed to find Interview" });
+      return res.status(400).json({
+        message: "failed to find Interview",
+      });
     }
 
     const totalQuestions = interview.questions.length;
@@ -468,8 +534,7 @@ export const finishInterview = async (req, res) => {
     const avgCommunication = totalQuestions
       ? totalCommunication / totalQuestions
       : 0;
-    const avgCorrectness =
-      totalQuestions ? totalCorrectness / totalQuestions : 0;
+    const avgCorrectness = totalQuestions ? totalCorrectness / totalQuestions : 0;
 
     interview.finalScore = finalScore;
     interview.status = "completed";
@@ -492,9 +557,9 @@ export const finishInterview = async (req, res) => {
       })),
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: `failed to finish Interview ${error}` });
+    return res.status(500).json({
+      message: `failed to finish Interview ${error}`,
+    });
   }
 };
 
@@ -517,7 +582,9 @@ export const getInterviewReport = async (req, res) => {
     const interview = await Interview.findById(req.params.id);
 
     if (!interview) {
-      return res.status(404).json({ message: "Interview not found" });
+      return res.status(404).json({
+        message: "Interview not found",
+      });
     }
 
     const totalQuestions = interview.questions.length;
@@ -536,8 +603,7 @@ export const getInterviewReport = async (req, res) => {
     const avgCommunication = totalQuestions
       ? totalCommunication / totalQuestions
       : 0;
-    const avgCorrectness =
-      totalQuestions ? totalCorrectness / totalQuestions : 0;
+    const avgCorrectness = totalQuestions ? totalCorrectness / totalQuestions : 0;
 
     return res.json({
       finalScore: interview.finalScore,
